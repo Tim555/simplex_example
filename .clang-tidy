@@ -1,0 +1,14 @@
+---
+Checks: >-
+  -*,
+  bugprone-*,
+  performance-*,
+  portability-*,
+  readability-*,
+  readability-line-length
+WarningsAsErrors: ''
+HeaderFilterRegex: '^.*/SimplexExample/(src|test)/.*$'
+FormatStyle: file
+CheckOptions:
+  - key: readability-line-length.LineLength
+    value: '100'
