@@ -13,6 +13,12 @@ class Solver {
 
 class SimplexSolver : public Solver {
   public:
+    enum class StepResult {
+        Continue,
+        Optimal,
+        Unbounded
+    };
+
     explicit SimplexSolver(const LinearProgram &linear_program);
 
     const Eigen::MatrixXd &inequalities() const noexcept;
@@ -29,5 +35,8 @@ class SimplexSolver : public Solver {
     Eigen::Index entering_variable(std::shared_ptr<Eigen::MatrixXd> standard_form) const;
     Eigen::Index leaving_variable(std::shared_ptr<Eigen::MatrixXd> standard_form, Eigen::Index entering) const;
 
-    bool step(std::shared_ptr<Eigen::MatrixXd> standard_form) const;
+    bool check_unbounded(std::shared_ptr<Eigen::MatrixXd> standard_form, Eigen::Index entering) const;
+    bool check_feasible(std::shared_ptr<Eigen::MatrixXd> standard_form) const;
+    StepResult step(std::shared_ptr<Eigen::MatrixXd> standard_form) const;
+    Eigen::VectorXd unbounded_solution() const;
 };
