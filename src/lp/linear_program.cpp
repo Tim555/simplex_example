@@ -14,6 +14,8 @@ NaturalLinearProgram::NaturalLinearProgram(const Eigen::MatrixXd &inequalities,
     if (inequalities_.cols() != maximization_function_.size()) {
         throw std::invalid_argument("maximization_function must have one value per inequality column");
     }
+
+    effective_maximization_function_ = sense_ == LinearProgram::Sense::Minimize ? -maximization_function_ : maximization_function_;
 }
 
 const Eigen::MatrixXd &NaturalLinearProgram::inequalities() const noexcept {
@@ -25,11 +27,7 @@ const Eigen::VectorXd &NaturalLinearProgram::inequalities_rhs() const noexcept {
 }
 
 const Eigen::VectorXd &NaturalLinearProgram::maximization_function() const noexcept {
-    if (sense_ == LinearProgram::Sense::Minimize) {
-        return -maximization_function_;
-    } else {
-        return maximization_function_;
-    }
+    return effective_maximization_function_;
 }
 
 LinearProgram::Sense NaturalLinearProgram::sense() const noexcept {

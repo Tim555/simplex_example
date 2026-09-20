@@ -32,8 +32,10 @@ Eigen::VectorXd SimplexSolver::solve() const {
         return unbounded_solution();
     }
 
-    std::cout << *standard_form << std::endl;
     Eigen::VectorXd ret = Eigen::VectorXd::Zero(linear_program_.maximization_function().size());
+    if (!check_unit_variable(standard_form)) {
+        return ret;
+    }
     for (Eigen::Index col = 0; col < linear_program_.maximization_function().size(); ++col) {
         for (Eigen::Index row = 0; row < linear_program_.inequalities().rows(); ++row) {
             // You can access the solution for the original variables here if needed
@@ -140,29 +142,25 @@ bool SimplexSolver::check_unbounded(std::shared_ptr<Eigen::MatrixXd> standard_fo
 }
 
 bool SimplexSolver::check_feasible(std::shared_ptr<Eigen::MatrixXd> standard_form) const {
-    auto solution_block = standard_form->topLeftCorner(linear_program_.inequalities_rhs().size(), linear_program_.maximization_function().size());
-    constexpr double kTolerance = 1e-9;
-
-    for (Eigen::Index row = 0; row < solution_block.rows(); ++row) {
-        Eigen::Index ones_in_row = 0;
-        for (Eigen::Index col = 0; col < solution_block.cols(); ++col) {
-            double value = solution_block(row, col);
-            if (std::abs(value - 1.0) < kTolerance) {
-                ++ones_in_row;
-            } else if (std::abs(value) >= kTolerance) {
-                return false;
-            }
-        }
-        if (ones_in_row > 1) {
+    for (Eigen::Index i = 0; i < standard_form->rows() - 1; ++i) {
+        if ((*standard_form)(i, standard_form->cols() - 1) < 0) {
             return false;
         }
     }
+    return true;
+}
+
+bool SimplexSolver::check_unit_variable(std::shared_ptr<Eigen::MatrixXd> standard_form) const {
+    constexpr double kTolerance = 1e-9;
+    auto solution_block = standard_form->topLeftCorner(linear_program_.inequalities_rhs().size(), linear_program_.maximization_function().size());
 
     for (Eigen::Index col = 0; col < solution_block.cols(); ++col) {
         Eigen::Index ones_in_col = 0;
         for (Eigen::Index row = 0; row < solution_block.rows(); ++row) {
             if (std::abs(solution_block(row, col) - 1.0) < kTolerance) {
                 ++ones_in_col;
+            } else if (std::abs(solution_block(row, col)) >= kTolerance) {
+                return false;
             }
         }
         if (ones_in_col != 1) {
@@ -172,3 +170,4 @@ bool SimplexSolver::check_feasible(std::shared_ptr<Eigen::MatrixXd> standard_for
 
     return true;
 }
+    

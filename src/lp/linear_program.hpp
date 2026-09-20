@@ -43,6 +43,8 @@ class NaturalLinearProgram : public LinearProgram {
     Eigen::MatrixXd inequalities_;
     Eigen::VectorXd inequalities_rhs_;
     Eigen::VectorXd maximization_function_;
+    // Cached maximization_function_ negated when sense_ is Minimize, since maximization_function() returns a reference.
+    Eigen::VectorXd effective_maximization_function_;
     LinearProgram::Sense sense_;
     LinearProgram::Domain domain_;
 };

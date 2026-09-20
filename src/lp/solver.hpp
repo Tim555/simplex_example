@@ -37,6 +37,7 @@ class SimplexSolver : public Solver {
 
     bool check_unbounded(std::shared_ptr<Eigen::MatrixXd> standard_form, Eigen::Index entering) const;
     bool check_feasible(std::shared_ptr<Eigen::MatrixXd> standard_form) const;
+    bool check_unit_variable(std::shared_ptr<Eigen::MatrixXd> standard_form) const;
     StepResult step(std::shared_ptr<Eigen::MatrixXd> standard_form) const;
     Eigen::VectorXd unbounded_solution() const;
 };
