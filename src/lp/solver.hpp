@@ -28,4 +28,6 @@ class SimplexSolver : public Solver {
     std::tuple<Eigen::Index, Eigen::Index> compute_pivot(std::shared_ptr<Eigen::MatrixXd> standard_form) const;
     Eigen::Index entering_variable(std::shared_ptr<Eigen::MatrixXd> standard_form) const;
     Eigen::Index leaving_variable(std::shared_ptr<Eigen::MatrixXd> standard_form, Eigen::Index entering) const;
+
+    bool step(std::shared_ptr<Eigen::MatrixXd> standard_form) const;
 };

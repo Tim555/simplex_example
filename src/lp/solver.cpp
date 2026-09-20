@@ -21,11 +21,21 @@ Eigen::VectorXd SimplexSolver::solve() const {
     if (!standard_form) {
         throw std::runtime_error("Failed to initialize standard form.");
     }
+
+    while (!step(standard_form)) {}
+
     std::cout << *standard_form << std::endl;
-
-    auto [leaving, entering] = compute_pivot(standard_form);
-
-    return maximization_function(); 
+    Eigen::VectorXd ret = Eigen::VectorXd::Zero(linear_program_.maximization_function().size());
+    for (Eigen::Index col = 0; col < linear_program_.maximization_function().size(); ++col) {
+        for (Eigen::Index row = 0; row < linear_program_.maximization_function().size(); ++row) {
+            // You can access the solution for the original variables here if needed
+            auto value = (*standard_form)(row, col);
+            if (value == 1){
+                ret[col] = (*standard_form)(row, standard_form->cols() - 1);
+            }
+        }
+    }
+    return ret;
 }
 
 std::shared_ptr<Eigen::MatrixXd> SimplexSolver::initialize() const {
@@ -47,11 +57,14 @@ std::shared_ptr<Eigen::MatrixXd> SimplexSolver::initialize() const {
 }
 
 Eigen::Index SimplexSolver::leaving_variable(std::shared_ptr<Eigen::MatrixXd> standard_form, Eigen::Index entering) const {
+    if (entering < 0) {
+        return -1;
+    }
     Eigen::VectorXd result = standard_form->col(standard_form->cols() - 1).array() / standard_form->col(entering).array();
     result.conservativeResize(result.size() - 1); // Remove the last element (bottom row)
-    std::cout << "Leaving variable ratios: " << result.transpose() << std::endl;
     Eigen::Index leaving = -1;
-    return result.minCoeff(&leaving);
+    result.minCoeff(&leaving);
+    return leaving;
 }
 
 Eigen::Index SimplexSolver::entering_variable(std::shared_ptr<Eigen::MatrixXd> standard_form) const {
@@ -60,9 +73,7 @@ Eigen::Index SimplexSolver::entering_variable(std::shared_ptr<Eigen::MatrixXd> s
     Eigen::Index minRowIdx;
     double minVal = bottomRow.minCoeff(&minColIdx, &minRowIdx); // Single scan pass
     if (minVal < 0) {
-        // You instantly have your index and validation in one go
-        std::cout << "Negative value found at column: " << minColIdx << std::endl;
-        return minColIdx;
+        return minRowIdx;
     }
     return -1;
 }
@@ -70,7 +81,29 @@ Eigen::Index SimplexSolver::entering_variable(std::shared_ptr<Eigen::MatrixXd> s
 std::tuple<Eigen::Index, Eigen::Index> SimplexSolver::compute_pivot(std::shared_ptr<Eigen::MatrixXd> standard_form) const {
     auto entering = entering_variable(standard_form);
     auto leaving = leaving_variable(standard_form, entering);
-    std::cout << "Pivot: leaving = " << leaving << ", entering = " << entering << std::endl;
-    
     return std::make_tuple(leaving, entering);
+}
+
+bool SimplexSolver::step(std::shared_ptr<Eigen::MatrixXd> standard_form) const {
+    auto [leaving, entering] = compute_pivot(standard_form);
+    if (leaving < 0 || entering < 0) {
+        return true; // indicates that the algorithm should terminate
+    }
+
+    // first divide the pivot row by the pivot element to make it 1
+    double pivot_value = (*standard_form)(leaving, entering);
+    if (pivot_value == 0) {
+        throw std::runtime_error("Pivot element is zero.");
+    }
+    standard_form->row(leaving) /= pivot_value;
+
+    // now eliminate the entering column in all other rows
+    for (Eigen::Index i = 0; i < standard_form->rows(); ++i) {
+        if (i != leaving) {
+            double factor = (*standard_form)(i, entering);
+            standard_form->row(i) -= factor * standard_form->row(leaving);
+        }
+    }
+    
+    return false; // indicates that the algorithm should continue
 }

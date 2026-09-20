@@ -25,7 +25,11 @@ const Eigen::VectorXd &NaturalLinearProgram::inequalities_rhs() const noexcept {
 }
 
 const Eigen::VectorXd &NaturalLinearProgram::maximization_function() const noexcept {
-    return maximization_function_;
+    if (sense_ == LinearProgram::Sense::Minimize) {
+        return -maximization_function_;
+    } else {
+        return maximization_function_;
+    }
 }
 
 LinearProgram::Sense NaturalLinearProgram::sense() const noexcept {
