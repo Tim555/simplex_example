@@ -10,6 +10,9 @@ TEST(SimplexTest, RejectsInvalidLinearProgramConstruction) {
     Eigen::VectorXd maximization_function(2);
     maximization_function << 5.0, 6.0;
 
-    EXPECT_THROW(NaturalLinearProgram(inequalities, inequalities_rhs, maximization_function),
+    EXPECT_THROW(NaturalLinearProgram(
+        inequalities, inequalities_rhs, maximization_function,
+        NaturalLinearProgram::Sense::Maximize,
+        NaturalLinearProgram::Domain::Natural),
                  std::invalid_argument);
 }

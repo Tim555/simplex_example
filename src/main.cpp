@@ -10,7 +10,10 @@ int main() {
     Eigen::VectorXd maximization_function(2);
     maximization_function << 3.0, 2.0;
 
-    NaturalLinearProgram linear_program(inequalities, inequalities_rhs, maximization_function);
+    NaturalLinearProgram linear_program(
+        inequalities, inequalities_rhs, maximization_function,
+        NaturalLinearProgram::Sense::Maximize,
+        NaturalLinearProgram::Domain::Natural);
     SimplexSolver simplex(linear_program);
 
     std::cout << simplex.solve() << std::endl;

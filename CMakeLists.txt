@@ -20,6 +20,7 @@ set(PROJECT_HEADERS
 set(SIMPLEX_SOURCES
     src/lp/solver.cpp
     src/lp/linear_program.cpp
+    src/lp/lp_parser.cpp
 )
 
 set(SIMPLEX_HEADERS
@@ -50,8 +51,14 @@ FetchContent_Declare(
     DOWNLOAD_EXTRACT_TIMESTAMP TRUE
 )
 
+FetchContent_Declare(
+    yaml-cpp
+    GIT_REPOSITORY https://github.com/jbeder/yaml-cpp.git
+    DOWNLOAD_EXTRACT_TIMESTAMP TRUE
+)
+
 set(gtest_force_shared_crt ON CACHE BOOL "" FORCE)
-FetchContent_MakeAvailable(eigen googletest)
+FetchContent_MakeAvailable(eigen googletest yaml-cpp)
 
 enable_testing()
 
@@ -62,11 +69,13 @@ add_library(simplex
 
 target_include_directories(simplex PUBLIC src)
 target_link_libraries(simplex PUBLIC Eigen3::Eigen)
+target_link_libraries(simplex PUBLIC yaml-cpp::yaml-cpp)
 target_link_libraries(simplex_example PRIVATE simplex)
 
 add_executable(simplex_example_test
     test/linear_program_test.cpp
     test/simplex_test.cpp
+    test/lp_parser_test.cpp
     ${PROJECT_HEADERS}
 )
 
@@ -75,7 +84,9 @@ target_include_directories(simplex_example_test PRIVATE src)
 target_link_libraries(simplex_example_test PRIVATE GTest::gtest_main simplex)
 
 include(GoogleTest)
-gtest_discover_tests(simplex_example_test)
+gtest_discover_tests(simplex_example_test
+    WORKING_DIRECTORY ${CMAKE_SOURCE_DIR}
+)
 
 find_program(CLANG_FORMAT_EXECUTABLE NAMES clang-format)
 if(CLANG_FORMAT_EXECUTABLE)
@@ -87,6 +98,7 @@ if(CLANG_FORMAT_EXECUTABLE)
             ${SIMPLEX_HEADERS}
             test/linear_program_test.cpp
             test/simplex_test.cpp
+            test/lp_parser_test.cpp
         WORKING_DIRECTORY ${CMAKE_SOURCE_DIR}
         COMMENT "Formatting C++ sources"
     )
