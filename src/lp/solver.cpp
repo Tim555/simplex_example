@@ -3,23 +3,8 @@
 #include <iostream>
 #include <limits>
 
-SimplexSolver::SimplexSolver(const LinearProgram &linear_program)
-    : linear_program_(linear_program) {}
-
-const Eigen::MatrixXd &SimplexSolver::inequalities() const noexcept {
-    return linear_program_.inequalities();
-}
-
-const Eigen::VectorXd &SimplexSolver::inequalities_rhs() const noexcept {
-    return linear_program_.inequalities_rhs();
-}
-
-const Eigen::VectorXd &SimplexSolver::maximization_function() const noexcept {
-    return linear_program_.maximization_function();
-}
-
-Eigen::VectorXd SimplexSolver::solve() const { 
-    auto standard_form = initialize();
+Eigen::VectorXd SimplexSolver::solve(const LinearProgram &linear_program) const {
+    auto standard_form = initialize(linear_program);
     if (!standard_form) {
         throw std::runtime_error("Failed to initialize standard form.");
     }
@@ -29,15 +14,15 @@ Eigen::VectorXd SimplexSolver::solve() const {
         result = step(standard_form);
     }
     if (result == StepResult::Unbounded) {
-        return unbounded_solution();
+        return unbounded_solution(linear_program);
     }
 
-    Eigen::VectorXd ret = Eigen::VectorXd::Zero(linear_program_.maximization_function().size());
-    if (!check_unit_variable(standard_form)) {
+    Eigen::VectorXd ret = Eigen::VectorXd::Zero(linear_program.maximization_function().size());
+    if (!check_unit_variable(standard_form, linear_program)) {
         return ret;
     }
-    for (Eigen::Index col = 0; col < linear_program_.maximization_function().size(); ++col) {
-        for (Eigen::Index row = 0; row < linear_program_.inequalities().rows(); ++row) {
+    for (Eigen::Index col = 0; col < linear_program.maximization_function().size(); ++col) {
+        for (Eigen::Index row = 0; row < linear_program.inequalities().rows(); ++row) {
             // You can access the solution for the original variables here if needed
             auto value = (*standard_form)(row, col);
             if (value == 1){
@@ -51,27 +36,27 @@ Eigen::VectorXd SimplexSolver::solve() const {
     return ret;
 }
 
-Eigen::VectorXd SimplexSolver::unbounded_solution() const {
-    double fill = linear_program_.sense() == LinearProgram::Sense::Maximize
+Eigen::VectorXd SimplexSolver::unbounded_solution(const LinearProgram &linear_program) const {
+    double fill = linear_program.sense() == LinearProgram::Sense::Maximize
         ? std::numeric_limits<double>::infinity()
         : -std::numeric_limits<double>::infinity();
-    return Eigen::VectorXd::Constant(maximization_function().size(), fill);
+    return Eigen::VectorXd::Constant(linear_program.maximization_function().size(), fill);
 }
 
-std::shared_ptr<Eigen::MatrixXd> SimplexSolver::initialize() const {
-    auto num_variables = inequalities().cols();
-    auto num_inequalities = inequalities().rows();
+std::shared_ptr<Eigen::MatrixXd> SimplexSolver::initialize(const LinearProgram &linear_program) const {
+    auto num_variables = linear_program.inequalities().cols();
+    auto num_inequalities = linear_program.inequalities().rows();
     auto num_slack_variables = num_inequalities;
     auto total_variables = num_variables + num_slack_variables + 1;
 
     auto standard_form = std::make_shared<Eigen::MatrixXd>(
         Eigen::MatrixXd::Zero(num_inequalities + 1, total_variables));
-    standard_form->block(0, 0, num_inequalities, num_variables) = inequalities();
+    standard_form->block(0, 0, num_inequalities, num_variables) = linear_program.inequalities();
     standard_form->block(0, num_variables, num_inequalities, num_slack_variables) =
         Eigen::MatrixXd::Identity(num_inequalities, num_slack_variables);
-    standard_form->block(0, total_variables - 1, num_inequalities, 1) = inequalities_rhs();
+    standard_form->block(0, total_variables - 1, num_inequalities, 1) = linear_program.inequalities_rhs();
     standard_form->block(num_inequalities, 0, 1, num_variables) =
-        -maximization_function().transpose();
+        -linear_program.maximization_function().transpose();
 
     return standard_form;
 }
@@ -150,9 +135,9 @@ bool SimplexSolver::check_feasible(std::shared_ptr<Eigen::MatrixXd> standard_for
     return true;
 }
 
-bool SimplexSolver::check_unit_variable(std::shared_ptr<Eigen::MatrixXd> standard_form) const {
+bool SimplexSolver::check_unit_variable(std::shared_ptr<Eigen::MatrixXd> standard_form, const LinearProgram &linear_program) const {
     constexpr double kTolerance = 1e-9;
-    auto solution_block = standard_form->topLeftCorner(linear_program_.inequalities_rhs().size(), linear_program_.maximization_function().size());
+    auto solution_block = standard_form->topLeftCorner(linear_program.inequalities_rhs().size(), linear_program.maximization_function().size());
 
     for (Eigen::Index col = 0; col < solution_block.cols(); ++col) {
         Eigen::Index ones_in_col = 0;

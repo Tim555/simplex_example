@@ -9,8 +9,8 @@ class Solver {
   public:
     virtual ~Solver() = default;
 
-    /// Solves the program and returns the resulting decision variable values.
-    virtual Eigen::VectorXd solve() const = 0;
+    /// Solves the given program and returns the resulting decision variable values.
+    virtual Eigen::VectorXd solve(const LinearProgram &linear_program) const = 0;
 };
 
 /// Solves a LinearProgram using the tableau-based simplex method.
@@ -23,24 +23,12 @@ class SimplexSolver : public Solver {
         Unbounded
     };
 
-    /// Binds the solver to a program; linear_program must outlive this solver.
-    explicit SimplexSolver(const LinearProgram &linear_program);
-
-    /// Coefficient matrix A of the bound program's inequality constraints.
-    const Eigen::MatrixXd &inequalities() const noexcept;
-    /// Right-hand side vector b of the bound program's inequality constraints.
-    const Eigen::VectorXd &inequalities_rhs() const noexcept;
-    /// Objective coefficients of the bound program, oriented for maximization.
-    const Eigen::VectorXd &maximization_function() const noexcept;
-
     /// Runs the simplex algorithm to completion; throws std::runtime_error if no feasible solution is found.
-    Eigen::VectorXd solve() const override;
+    Eigen::VectorXd solve(const LinearProgram &linear_program) const override;
 
   private:
-    const LinearProgram &linear_program_;
-
-    /// Builds the initial simplex tableau (standard form) from the bound program.
-    std::shared_ptr<Eigen::MatrixXd> initialize() const;
+    /// Builds the initial simplex tableau (standard form) from the given program.
+    std::shared_ptr<Eigen::MatrixXd> initialize(const LinearProgram &linear_program) const;
     /// Determines the (row, column) pivot position for the next simplex step.
     std::tuple<Eigen::Index, Eigen::Index> compute_pivot(std::shared_ptr<Eigen::MatrixXd> standard_form) const;
     /// Selects the entering variable column using the objective row.
@@ -53,9 +41,9 @@ class SimplexSolver : public Solver {
     /// Returns true if the current tableau represents a feasible solution.
     bool check_feasible(std::shared_ptr<Eigen::MatrixXd> standard_form) const;
     /// Returns true if the given column is a unit (basic) column.
-    bool check_unit_variable(std::shared_ptr<Eigen::MatrixXd> standard_form) const;
+    bool check_unit_variable(std::shared_ptr<Eigen::MatrixXd> standard_form, const LinearProgram &linear_program) const;
     /// Performs one pivot step and reports whether to continue, stop optimally, or stop as unbounded.
     StepResult step(std::shared_ptr<Eigen::MatrixXd> standard_form) const;
     /// Builds the sentinel solution vector returned when the program is unbounded.
-    Eigen::VectorXd unbounded_solution() const;
+    Eigen::VectorXd unbounded_solution(const LinearProgram &linear_program) const;
 };

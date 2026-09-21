@@ -19,8 +19,8 @@ TEST(SimplexTest, Solution) {
         LinearProgram::Sense::Maximize,
         LinearProgram::Domain::Natural
     );
-    SimplexSolver solver(lp);
-    Eigen::VectorXd solution = solver.solve();
+    SimplexSolver solver;
+    Eigen::VectorXd solution = solver.solve(lp);
 
     EXPECT_NEAR(solution[0], 10.0 / 3.0, 1e-9);
     EXPECT_NEAR(solution[1], 4.0 / 3.0, 1e-9);
@@ -40,8 +40,8 @@ TEST(SimplexTest, Solution2) {
         LinearProgram::Sense::Maximize,
         LinearProgram::Domain::Natural
     );
-    SimplexSolver solver(lp);
-    Eigen::VectorXd solution = solver.solve();
+    SimplexSolver solver;
+    Eigen::VectorXd solution = solver.solve(lp);
 
     EXPECT_NEAR(solution[0], 2.0, 1e-9);
     EXPECT_NEAR(solution[1], 6.0, 1e-9);
@@ -61,8 +61,8 @@ TEST(SimplexTest, Infeasible) {
         LinearProgram::Sense::Maximize,
         LinearProgram::Domain::Natural
     );
-    SimplexSolver solver(lp);
-    EXPECT_THROW(solver.solve(), std::runtime_error);
+    SimplexSolver solver;
+    EXPECT_THROW(solver.solve(lp), std::runtime_error);
 }
 
 TEST(SimplexTest, Unbounded) {
@@ -79,8 +79,8 @@ TEST(SimplexTest, Unbounded) {
         LinearProgram::Sense::Maximize,
         LinearProgram::Domain::Natural
     );
-    SimplexSolver solver(lp);
-    Eigen::VectorXd solution = solver.solve();
+    SimplexSolver solver;
+    Eigen::VectorXd solution = solver.solve(lp);
 
     EXPECT_TRUE(solution.array().isInf().all());
     EXPECT_TRUE((solution.array() > 0).all());
@@ -100,8 +100,8 @@ TEST(SimplexTest, Minimize) {
         LinearProgram::Sense::Minimize,
         LinearProgram::Domain::Natural
     );
-    SimplexSolver solver(lp);
-    Eigen::VectorXd solution = solver.solve();
+    SimplexSolver solver;
+    Eigen::VectorXd solution = solver.solve(lp);
 
     EXPECT_NEAR(solution[0], 0.0, 1e-9);
     EXPECT_NEAR(solution[1], 0.0, 1e-9);

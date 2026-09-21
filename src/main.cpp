@@ -11,8 +11,8 @@ int main(int argc, char *argv[]) {
 
     try {
         const std::shared_ptr<LinearProgram> linear_program = LPParser::parse(argv[1]);
-        SimplexSolver simplex(*linear_program);
-        std::cout << simplex.solve() << std::endl;
+        SimplexSolver simplex;
+        std::cout << simplex.solve(*linear_program) << std::endl;
     } catch (const std::exception &e) {
         std::cerr << "error: " << e.what() << std::endl;
         return 1;
