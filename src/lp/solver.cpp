@@ -25,7 +25,7 @@ Eigen::VectorXd SimplexSolver::solve(const LinearProgram &linear_program) const 
         for (Eigen::Index row = 0; row < linear_program.inequalities().rows(); ++row) {
             // You can access the solution for the original variables here if needed
             auto value = (*standard_form)(row, col);
-            if (value == 1){
+            if (value == 1) {
                 ret[col] = (*standard_form)(row, standard_form->cols() - 1);
             }
         }
@@ -38,12 +38,13 @@ Eigen::VectorXd SimplexSolver::solve(const LinearProgram &linear_program) const 
 
 Eigen::VectorXd SimplexSolver::unbounded_solution(const LinearProgram &linear_program) const {
     double fill = linear_program.sense() == LinearProgram::Sense::Maximize
-        ? std::numeric_limits<double>::infinity()
-        : -std::numeric_limits<double>::infinity();
+                      ? std::numeric_limits<double>::infinity()
+                      : -std::numeric_limits<double>::infinity();
     return Eigen::VectorXd::Constant(linear_program.maximization_function().size(), fill);
 }
 
-std::shared_ptr<Eigen::MatrixXd> SimplexSolver::initialize(const LinearProgram &linear_program) const {
+std::shared_ptr<Eigen::MatrixXd>
+SimplexSolver::initialize(const LinearProgram &linear_program) const {
     auto num_variables = linear_program.inequalities().cols();
     auto num_inequalities = linear_program.inequalities().rows();
     auto num_slack_variables = num_inequalities;
@@ -54,25 +55,29 @@ std::shared_ptr<Eigen::MatrixXd> SimplexSolver::initialize(const LinearProgram &
     standard_form->block(0, 0, num_inequalities, num_variables) = linear_program.inequalities();
     standard_form->block(0, num_variables, num_inequalities, num_slack_variables) =
         Eigen::MatrixXd::Identity(num_inequalities, num_slack_variables);
-    standard_form->block(0, total_variables - 1, num_inequalities, 1) = linear_program.inequalities_rhs();
+    standard_form->block(0, total_variables - 1, num_inequalities, 1) =
+        linear_program.inequalities_rhs();
     standard_form->block(num_inequalities, 0, 1, num_variables) =
         -linear_program.maximization_function().transpose();
 
     return standard_form;
 }
 
-Eigen::Index SimplexSolver::leaving_variable(std::shared_ptr<Eigen::MatrixXd> standard_form, Eigen::Index entering) const {
+Eigen::Index SimplexSolver::leaving_variable(std::shared_ptr<Eigen::MatrixXd> standard_form,
+                                             Eigen::Index entering) const {
     if (entering < 0) {
         return -1;
     }
-    Eigen::VectorXd result = standard_form->col(standard_form->cols() - 1).array() / standard_form->col(entering).array();
+    Eigen::VectorXd result = standard_form->col(standard_form->cols() - 1).array() /
+                             standard_form->col(entering).array();
     result.conservativeResize(result.size() - 1); // Remove the last element (bottom row)
     Eigen::Index leaving = -1;
     result.minCoeff(&leaving);
     return leaving;
 }
 
-Eigen::Index SimplexSolver::entering_variable(std::shared_ptr<Eigen::MatrixXd> standard_form) const {
+Eigen::Index
+SimplexSolver::entering_variable(std::shared_ptr<Eigen::MatrixXd> standard_form) const {
     auto bottomRow = standard_form->bottomRows(1);
     Eigen::Index minColIdx;
     Eigen::Index minRowIdx;
@@ -83,13 +88,15 @@ Eigen::Index SimplexSolver::entering_variable(std::shared_ptr<Eigen::MatrixXd> s
     return -1;
 }
 
-std::tuple<Eigen::Index, Eigen::Index> SimplexSolver::compute_pivot(std::shared_ptr<Eigen::MatrixXd> standard_form) const {
+std::tuple<Eigen::Index, Eigen::Index>
+SimplexSolver::compute_pivot(std::shared_ptr<Eigen::MatrixXd> standard_form) const {
     auto entering = entering_variable(standard_form);
     auto leaving = leaving_variable(standard_form, entering);
     return std::make_tuple(leaving, entering);
 }
 
-SimplexSolver::StepResult SimplexSolver::step(std::shared_ptr<Eigen::MatrixXd> standard_form) const {
+SimplexSolver::StepResult
+SimplexSolver::step(std::shared_ptr<Eigen::MatrixXd> standard_form) const {
     auto entering = entering_variable(standard_form);
     if (entering < 0) {
         return StepResult::Optimal;
@@ -113,11 +120,12 @@ SimplexSolver::StepResult SimplexSolver::step(std::shared_ptr<Eigen::MatrixXd> s
             standard_form->row(i) -= factor * standard_form->row(leaving);
         }
     }
-    
+
     return StepResult::Continue;
 }
 
-bool SimplexSolver::check_unbounded(std::shared_ptr<Eigen::MatrixXd> standard_form, Eigen::Index entering) const {
+bool SimplexSolver::check_unbounded(std::shared_ptr<Eigen::MatrixXd> standard_form,
+                                    Eigen::Index entering) const {
     for (Eigen::Index i = 0; i < standard_form->rows() - 1; ++i) {
         if ((*standard_form)(i, entering) > 0) {
             return false;
@@ -135,9 +143,11 @@ bool SimplexSolver::check_feasible(std::shared_ptr<Eigen::MatrixXd> standard_for
     return true;
 }
 
-bool SimplexSolver::check_unit_variable(std::shared_ptr<Eigen::MatrixXd> standard_form, const LinearProgram &linear_program) const {
+bool SimplexSolver::check_unit_variable(std::shared_ptr<Eigen::MatrixXd> standard_form,
+                                        const LinearProgram &linear_program) const {
     constexpr double kTolerance = 1e-9;
-    auto solution_block = standard_form->topLeftCorner(linear_program.inequalities_rhs().size(), linear_program.maximization_function().size());
+    auto solution_block = standard_form->topLeftCorner(
+        linear_program.inequalities_rhs().size(), linear_program.maximization_function().size());
 
     for (Eigen::Index col = 0; col < solution_block.cols(); ++col) {
         Eigen::Index ones_in_col = 0;
@@ -155,4 +165,3 @@ bool SimplexSolver::check_unit_variable(std::shared_ptr<Eigen::MatrixXd> standar
 
     return true;
 }
-    
