@@ -3,31 +3,46 @@
 #include <iostream>
 #include <limits>
 
+namespace {
+constexpr double kTolerance = 1e-9;
+constexpr int kMaxIterations = 10000;
+} // namespace
+
 Eigen::VectorXd SimplexSolver::solve(const LinearProgram &linear_program) const {
+    if (linear_program.inequalities_rhs().minCoeff() < -kTolerance) {
+        throw std::runtime_error(
+            "Negative right-hand side requires a phase-1 method, which is not supported.");
+    }
+
     auto standard_form = initialize(linear_program);
     if (!standard_form) {
         throw std::runtime_error("Failed to initialize standard form.");
     }
 
+    auto num_variables = linear_program.maximization_function().size();
+    auto num_inequalities = linear_program.inequalities().rows();
+    // Slack variables start basic, one per constraint row.
+    std::vector<Eigen::Index> basis(num_inequalities);
+    for (Eigen::Index i = 0; i < num_inequalities; ++i) {
+        basis[i] = num_variables + i;
+    }
+
     StepResult result = StepResult::Continue;
+    int iterations = 0;
     while (result == StepResult::Continue) {
-        result = step(standard_form);
+        if (++iterations > kMaxIterations) {
+            throw std::runtime_error("Simplex exceeded maximum iterations; possible cycling.");
+        }
+        result = step(standard_form, basis);
     }
     if (result == StepResult::Unbounded) {
         return unbounded_solution(linear_program);
     }
 
-    Eigen::VectorXd ret = Eigen::VectorXd::Zero(linear_program.maximization_function().size());
-    if (!check_unit_variable(standard_form, linear_program)) {
-        return ret;
-    }
-    for (Eigen::Index col = 0; col < linear_program.maximization_function().size(); ++col) {
-        for (Eigen::Index row = 0; row < linear_program.inequalities().rows(); ++row) {
-            // You can access the solution for the original variables here if needed
-            auto value = (*standard_form)(row, col);
-            if (value == 1) {
-                ret[col] = (*standard_form)(row, standard_form->cols() - 1);
-            }
+    Eigen::VectorXd ret = Eigen::VectorXd::Zero(num_variables);
+    for (Eigen::Index row = 0; row < num_inequalities; ++row) {
+        if (basis[row] < num_variables) {
+            ret[basis[row]] = (*standard_form)(row, standard_form->cols() - 1);
         }
     }
     if (check_feasible(standard_form) == false) {
@@ -68,35 +83,36 @@ Eigen::Index SimplexSolver::leaving_variable(std::shared_ptr<Eigen::MatrixXd> st
     if (entering < 0) {
         return -1;
     }
-    Eigen::VectorXd result = standard_form->col(standard_form->cols() - 1).array() /
-                             standard_form->col(entering).array();
-    result.conservativeResize(result.size() - 1); // Remove the last element (bottom row)
     Eigen::Index leaving = -1;
-    result.minCoeff(&leaving);
+    double best_ratio = std::numeric_limits<double>::infinity();
+    for (Eigen::Index row = 0; row < standard_form->rows() - 1; ++row) {
+        double coeff = (*standard_form)(row, entering);
+        if (coeff <= kTolerance) {
+            continue; // only rows with a positive entering-column coefficient are valid
+        }
+        double ratio = (*standard_form)(row, standard_form->cols() - 1) / coeff;
+        if (ratio < best_ratio) {
+            best_ratio = ratio;
+            leaving = row;
+        }
+    }
     return leaving;
 }
 
 Eigen::Index
 SimplexSolver::entering_variable(std::shared_ptr<Eigen::MatrixXd> standard_form) const {
-    auto bottomRow = standard_form->bottomRows(1);
-    Eigen::Index minColIdx;
-    Eigen::Index minRowIdx;
-    double minVal = bottomRow.minCoeff(&minColIdx, &minRowIdx); // Single scan pass
-    if (minVal < 0) {
-        return minRowIdx;
+    auto bottom_row = standard_form->bottomRows(1);
+    Eigen::Index row_idx;
+    Eigen::Index col_idx;
+    double min_val = bottom_row.minCoeff(&row_idx, &col_idx); // Single scan pass
+    if (min_val < -kTolerance) {
+        return col_idx;
     }
     return -1;
 }
 
-std::tuple<Eigen::Index, Eigen::Index>
-SimplexSolver::compute_pivot(std::shared_ptr<Eigen::MatrixXd> standard_form) const {
-    auto entering = entering_variable(standard_form);
-    auto leaving = leaving_variable(standard_form, entering);
-    return std::make_tuple(leaving, entering);
-}
-
-SimplexSolver::StepResult
-SimplexSolver::step(std::shared_ptr<Eigen::MatrixXd> standard_form) const {
+SimplexSolver::StepResult SimplexSolver::step(std::shared_ptr<Eigen::MatrixXd> standard_form,
+                                              std::vector<Eigen::Index> &basis) const {
     auto entering = entering_variable(standard_form);
     if (entering < 0) {
         return StepResult::Optimal;
@@ -108,7 +124,7 @@ SimplexSolver::step(std::shared_ptr<Eigen::MatrixXd> standard_form) const {
 
     // first divide the pivot row by the pivot element to make it 1
     double pivot_value = (*standard_form)(leaving, entering);
-    if (pivot_value == 0) {
+    if (std::abs(pivot_value) < kTolerance) {
         throw std::runtime_error("Pivot element is zero.");
     }
     standard_form->row(leaving) /= pivot_value;
@@ -121,6 +137,7 @@ SimplexSolver::step(std::shared_ptr<Eigen::MatrixXd> standard_form) const {
         }
     }
 
+    basis[leaving] = entering;
     return StepResult::Continue;
 }
 
@@ -140,28 +157,5 @@ bool SimplexSolver::check_feasible(std::shared_ptr<Eigen::MatrixXd> standard_for
             return false;
         }
     }
-    return true;
-}
-
-bool SimplexSolver::check_unit_variable(std::shared_ptr<Eigen::MatrixXd> standard_form,
-                                        const LinearProgram &linear_program) const {
-    constexpr double kTolerance = 1e-9;
-    auto solution_block = standard_form->topLeftCorner(
-        linear_program.inequalities_rhs().size(), linear_program.maximization_function().size());
-
-    for (Eigen::Index col = 0; col < solution_block.cols(); ++col) {
-        Eigen::Index ones_in_col = 0;
-        for (Eigen::Index row = 0; row < solution_block.rows(); ++row) {
-            if (std::abs(solution_block(row, col) - 1.0) < kTolerance) {
-                ++ones_in_col;
-            } else if (std::abs(solution_block(row, col)) >= kTolerance) {
-                return false;
-            }
-        }
-        if (ones_in_col != 1) {
-            return false;
-        }
-    }
-
     return true;
 }

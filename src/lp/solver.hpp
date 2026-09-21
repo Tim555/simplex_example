@@ -3,6 +3,7 @@
 #include "lp/linear_program.hpp"
 #include <Eigen/Dense>
 #include <memory>
+#include <vector>
 
 /// Abstract solver that produces a solution vector for a LinearProgram.
 class Solver {
@@ -26,9 +27,6 @@ class SimplexSolver : public Solver {
   private:
     /// Builds the initial simplex tableau (standard form) from the given program.
     std::shared_ptr<Eigen::MatrixXd> initialize(const LinearProgram &linear_program) const;
-    /// Determines the (row, column) pivot position for the next simplex step.
-    std::tuple<Eigen::Index, Eigen::Index>
-    compute_pivot(std::shared_ptr<Eigen::MatrixXd> standard_form) const;
     /// Selects the entering variable column using the objective row.
     Eigen::Index entering_variable(std::shared_ptr<Eigen::MatrixXd> standard_form) const;
     /// Selects the leaving variable row via the minimum ratio test for the given entering column.
@@ -40,12 +38,10 @@ class SimplexSolver : public Solver {
                          Eigen::Index entering) const;
     /// Returns true if the current tableau represents a feasible solution.
     bool check_feasible(std::shared_ptr<Eigen::MatrixXd> standard_form) const;
-    /// Returns true if the given column is a unit (basic) column.
-    bool check_unit_variable(std::shared_ptr<Eigen::MatrixXd> standard_form,
-                             const LinearProgram &linear_program) const;
-    /// Performs one pivot step and reports whether to continue, stop optimally, or stop as
-    /// unbounded.
-    StepResult step(std::shared_ptr<Eigen::MatrixXd> standard_form) const;
+    /// Performs one pivot step, recording the variable now basic in the pivot row, and reports
+    /// whether to continue, stop optimally, or stop as unbounded.
+    StepResult step(std::shared_ptr<Eigen::MatrixXd> standard_form,
+                    std::vector<Eigen::Index> &basis) const;
     /// Builds the sentinel solution vector returned when the program is unbounded.
     Eigen::VectorXd unbounded_solution(const LinearProgram &linear_program) const;
 };
