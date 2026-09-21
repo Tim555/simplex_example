@@ -2,32 +2,39 @@
 
 #include <Eigen/Dense>
 
-
-
-
+/// Abstract representation of a linear program of the form Ax <= b, optimizing c^T x.
 class LinearProgram {
   public:
+    /// Optimization direction of the objective function.
     enum class Sense {
         Minimize,
         Maximize
     };
 
+    /// Domain that the decision variables are restricted to.
     enum class Domain {
         Integer,
         Natural
     };
     virtual ~LinearProgram() = default;
 
+    /// Coefficient matrix A of the inequality constraints Ax <= b.
     virtual const Eigen::MatrixXd &inequalities() const noexcept = 0;
+    /// Right-hand side vector b of the inequality constraints Ax <= b.
     virtual const Eigen::VectorXd &inequalities_rhs() const noexcept = 0;
+    /// Objective coefficients, already oriented for maximization regardless of sense().
     virtual const Eigen::VectorXd &maximization_function() const noexcept = 0;
 
+    /// Whether the original objective is to minimize or maximize.
     virtual LinearProgram::Sense sense() const noexcept = 0;
+    /// Domain the decision variables must belong to.
     virtual LinearProgram::Domain domain() const noexcept = 0;
 };
 
+/// A LinearProgram backed by explicit, in-memory constraint and objective data.
 class NaturalLinearProgram : public LinearProgram {
   public:
+    /// Constructs a program from raw constraint/objective data; throws std::invalid_argument on dimension mismatch.
     NaturalLinearProgram(const Eigen::MatrixXd &inequalities, const Eigen::VectorXd &inequalities_rhs,
                         const Eigen::VectorXd &maximization_function,
                         LinearProgram::Sense sense,
