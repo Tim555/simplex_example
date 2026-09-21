@@ -14,6 +14,8 @@ The project is written in C++, using the Eigen library for linear algebra operat
 - Keep changes focused on the requested behavior.
 - Prefer small, readable implementations over unnecessary abstractions.
 - Update documentation when behavior or setup changes.
+- Document all classes and public methods in all header files in a doxygen-compatible format. Keep descriptions brief and focused.
+- Use `///` for single-line documentation and `/** ... */` for multi-line documentation.
 
 ## Validation
 
