@@ -2,7 +2,6 @@
 
 #include "lp/linear_program.hpp"
 #include <Eigen/Dense>
-#include <memory>
 #include <vector>
 
 /// Abstract solver that produces a solution vector for a LinearProgram.
@@ -26,22 +25,20 @@ class SimplexSolver : public Solver {
 
   private:
     /// Builds the initial simplex tableau (standard form) from the given program.
-    std::shared_ptr<Eigen::MatrixXd> initialize(const LinearProgram &linear_program) const;
+    Eigen::MatrixXd initialize(const LinearProgram &linear_program) const;
     /// Selects the entering variable column using the objective row.
-    Eigen::Index entering_variable(std::shared_ptr<Eigen::MatrixXd> standard_form) const;
+    Eigen::Index entering_variable(const Eigen::MatrixXd &standard_form) const;
     /// Selects the leaving variable row via the minimum ratio test for the given entering column.
-    Eigen::Index leaving_variable(std::shared_ptr<Eigen::MatrixXd> standard_form,
+    Eigen::Index leaving_variable(const Eigen::MatrixXd &standard_form,
                                   Eigen::Index entering) const;
 
     /// Returns true if the entering column indicates an unbounded objective.
-    bool check_unbounded(std::shared_ptr<Eigen::MatrixXd> standard_form,
-                         Eigen::Index entering) const;
+    bool check_unbounded(const Eigen::MatrixXd &standard_form, Eigen::Index entering) const;
     /// Returns true if the current tableau represents a feasible solution.
-    bool check_feasible(std::shared_ptr<Eigen::MatrixXd> standard_form) const;
+    bool check_feasible(const Eigen::MatrixXd &standard_form) const;
     /// Performs one pivot step, recording the variable now basic in the pivot row, and reports
     /// whether to continue, stop optimally, or stop as unbounded.
-    StepResult step(std::shared_ptr<Eigen::MatrixXd> standard_form,
-                    std::vector<Eigen::Index> &basis) const;
+    StepResult step(Eigen::MatrixXd &standard_form, std::vector<Eigen::Index> &basis) const;
     /// Builds the sentinel solution vector returned when the program is unbounded.
     Eigen::VectorXd unbounded_solution(const LinearProgram &linear_program) const;
 };
