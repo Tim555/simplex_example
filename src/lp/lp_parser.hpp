@@ -29,7 +29,7 @@ private:
     /// Parses the optimization sense (minimize/maximize) field.
     static LinearProgram::Sense parseSense(const YAML::Node& node);
 
-    /// Parses the variable domain (integer/natural) field.
+    /// Parses the variable sign restriction (nonnegative/unrestricted) field.
     static LinearProgram::Domain parseDomain(const YAML::Node& node);
 
     /// Validates that constraint matrix/vector dimensions are consistent with each other.

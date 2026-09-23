@@ -128,6 +128,8 @@ SimplexSolver::StepResult SimplexSolver::step(Eigen::MatrixXd &standard_form,
     standard_form.row(leaving) /= pivot_value;
 
     // now eliminate the entering column in all other rows; each row update is independent.
+    // using jthread instead of OpenMP for parallel row elimination. 
+    // OpenMP was not used due to potential portability and maintainability concerns.
     auto eliminate = [&](Eigen::Index begin, Eigen::Index end) {
         for (Eigen::Index i = begin; i < end; ++i) {
             if (i != leaving) {

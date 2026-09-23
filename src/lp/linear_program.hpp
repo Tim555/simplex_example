@@ -11,10 +11,10 @@ class LinearProgram {
         Maximize
     };
 
-    /// Domain that the decision variables are restricted to.
+    /// Sign restriction applied to the decision variables.
     enum class Domain {
-        Integer,
-        Natural
+        NonNegative,
+        Unrestricted
     };
     virtual ~LinearProgram() = default;
 
@@ -27,18 +27,19 @@ class LinearProgram {
 
     /// Whether the original objective is to minimize or maximize.
     virtual LinearProgram::Sense sense() const noexcept = 0;
-    /// Domain the decision variables must belong to.
+    /// Whether the decision variables are constrained to x >= 0 or remain unrestricted.
     virtual LinearProgram::Domain domain() const noexcept = 0;
 };
 
 /// A LinearProgram backed by explicit, in-memory constraint and objective data.
-class NaturalLinearProgram : public LinearProgram {
+class NonNegativeLinearProgram : public LinearProgram {
   public:
     /// Constructs a program from raw constraint/objective data; throws std::invalid_argument on dimension mismatch.
-    NaturalLinearProgram(const Eigen::MatrixXd &inequalities, const Eigen::VectorXd &inequalities_rhs,
-                        const Eigen::VectorXd &maximization_function,
-                        LinearProgram::Sense sense,
-                        LinearProgram::Domain domain);
+    NonNegativeLinearProgram(const Eigen::MatrixXd &inequalities,
+                             const Eigen::VectorXd &inequalities_rhs,
+                             const Eigen::VectorXd &maximization_function,
+                             LinearProgram::Sense sense,
+                             LinearProgram::Domain domain);
 
     const Eigen::MatrixXd &inequalities() const noexcept override;
     const Eigen::VectorXd &inequalities_rhs() const noexcept override;

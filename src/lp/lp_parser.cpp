@@ -14,8 +14,9 @@ std::shared_ptr<LinearProgram> LPParser::parse(const std::string &filename) {
 
     validateDimensions(A, b, c);
 
-    if (domain == LinearProgram::Domain::Natural) {
-        return std::make_shared<NaturalLinearProgram>(A, b, c, sense, domain);
+    if (domain == LinearProgram::Domain::NonNegative ||
+        domain == LinearProgram::Domain::Unrestricted) {
+        return std::make_shared<NonNegativeLinearProgram>(A, b, c, sense, domain);
     }
     throw std::runtime_error("Unsupported domain");
 }
@@ -105,11 +106,11 @@ LinearProgram::Sense LPParser::parseSense(const YAML::Node &node) {
 LinearProgram::Domain LPParser::parseDomain(const YAML::Node &node) {
     const std::string value = node.as<std::string>();
 
-    if (value == "integer")
-        return LinearProgram::Domain::Integer;
+    if (value == "nonnegative" || value == "natural")
+        return LinearProgram::Domain::NonNegative;
 
-    if (value == "natural")
-        return LinearProgram::Domain::Natural;
+    if (value == "unrestricted" || value == "free")
+        return LinearProgram::Domain::Unrestricted;
 
     throw std::runtime_error("Invalid domain: " + value);
 }
