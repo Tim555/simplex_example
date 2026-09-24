@@ -1,5 +1,17 @@
 cmake_minimum_required(VERSION 3.20)
 
+# std::jthread needs libc++'s experimental support; Apple's system Clang lacks it,
+# so prefer Homebrew's LLVM Clang when the user hasn't already picked a compiler.
+if(APPLE AND NOT DEFINED CMAKE_CXX_COMPILER)
+    find_program(HOMEBREW_LLVM_CLANGXX clang++
+        PATHS "/usr/local/opt/llvm/bin" "/opt/homebrew/opt/llvm/bin"
+        NO_DEFAULT_PATH
+    )
+    if(HOMEBREW_LLVM_CLANGXX)
+        set(CMAKE_CXX_COMPILER "${HOMEBREW_LLVM_CLANGXX}")
+    endif()
+endif()
+
 project(SimplexExample LANGUAGES CXX)
 
 option(ENABLE_CLANG_TIDY "Run clang-tidy during C++ compilation" OFF)
@@ -7,6 +19,11 @@ option(ENABLE_CLANG_TIDY "Run clang-tidy during C++ compilation" OFF)
 set(CMAKE_CXX_STANDARD 23)
 set(CMAKE_CXX_STANDARD_REQUIRED ON)
 set(CMAKE_CXX_EXTENSIONS OFF)
+
+if(CMAKE_CXX_COMPILER_ID STREQUAL "Clang")
+    add_compile_options(-stdlib=libc++ -fexperimental-library)
+    add_link_options(-stdlib=libc++)
+endif()
 
 set(CMAKE_RUNTIME_OUTPUT_DIRECTORY "${CMAKE_SOURCE_DIR}/bin")
 
@@ -70,6 +87,10 @@ add_library(simplex
 target_include_directories(simplex PUBLIC src)
 target_link_libraries(simplex PUBLIC Eigen3::Eigen)
 target_link_libraries(simplex PUBLIC yaml-cpp::yaml-cpp)
+
+find_package(Threads REQUIRED)
+target_link_libraries(simplex PUBLIC Threads::Threads)
+
 target_link_libraries(simplex_example PRIVATE simplex)
 
 add_executable(simplex_example_test

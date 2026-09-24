@@ -10,9 +10,10 @@ TEST(LinearProgramTest, AcceptsValidLinearProgram) {
     maximization_function << 5.0, 6.0;
 
     EXPECT_NO_THROW({
-        const NaturalLinearProgram linear_program(
+        const NonNegativeLinearProgram linear_program(
             inequalities, inequalities_rhs, maximization_function,
-            NaturalLinearProgram::Sense::Maximize, NaturalLinearProgram::Domain::Natural);
+            NonNegativeLinearProgram::Sense::Maximize,
+            NonNegativeLinearProgram::Domain::NonNegative);
         EXPECT_EQ(linear_program.inequalities(), inequalities);
         EXPECT_EQ(linear_program.inequalities_rhs(), inequalities_rhs);
         EXPECT_EQ(linear_program.maximization_function(), maximization_function);
@@ -26,8 +27,8 @@ TEST(LinearProgramTest, RejectsInvalidLinearProgramConstruction) {
     Eigen::VectorXd maximization_function(2);
     maximization_function << 5.0, 6.0;
 
-    EXPECT_THROW(NaturalLinearProgram(inequalities, inequalities_rhs, maximization_function,
-                                      NaturalLinearProgram::Sense::Maximize,
-                                      NaturalLinearProgram::Domain::Natural),
+    EXPECT_THROW(NonNegativeLinearProgram(inequalities, inequalities_rhs, maximization_function,
+                                         NonNegativeLinearProgram::Sense::Maximize,
+                                         NonNegativeLinearProgram::Domain::NonNegative),
                  std::invalid_argument);
 }

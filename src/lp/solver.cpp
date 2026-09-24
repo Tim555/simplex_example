@@ -13,8 +13,12 @@ constexpr Eigen::Index kParallelRowThreshold = 64;
 } // namespace
 
 Eigen::VectorXd SimplexSolver::solve(const LinearProgram &linear_program) const {
+    if (linear_program.domain() != LinearProgram::Domain::NonNegative) {
+        throw InvalidModelError(
+            "Only nonnegative decision variables are supported by this solver.");
+    }
     if (linear_program.inequalities_rhs().minCoeff() < -kTolerance) {
-        throw std::runtime_error(
+        throw InvalidModelError(
             "Negative right-hand side requires a phase-1 method, which is not supported.");
     }
 
@@ -32,12 +36,12 @@ Eigen::VectorXd SimplexSolver::solve(const LinearProgram &linear_program) const 
     int iterations = 0;
     while (result == StepResult::Continue) {
         if (++iterations > kMaxIterations) {
-            throw std::runtime_error("Simplex exceeded maximum iterations; possible cycling.");
+            throw NumericalFailureError("Simplex exceeded maximum iterations; possible cycling.");
         }
         result = step(standard_form, basis);
     }
     if (result == StepResult::Unbounded) {
-        return unbounded_solution(linear_program);
+        throw UnboundedProblemError("The linear program is unbounded.");
     }
 
     Eigen::VectorXd ret = Eigen::VectorXd::Zero(num_variables);
@@ -47,7 +51,7 @@ Eigen::VectorXd SimplexSolver::solve(const LinearProgram &linear_program) const 
         }
     }
     if (check_feasible(standard_form) == false) {
-        throw std::runtime_error("Solution is not feasible.");
+        throw InfeasibleProblemError("Solution is not feasible.");
     }
     return ret;
 }
@@ -123,7 +127,7 @@ SimplexSolver::StepResult SimplexSolver::step(Eigen::MatrixXd &standard_form,
     // first divide the pivot row by the pivot element to make it 1
     double pivot_value = standard_form(leaving, entering);
     if (std::abs(pivot_value) < kTolerance) {
-        throw std::runtime_error("Pivot element is zero.");
+        throw NumericalFailureError("Pivot element is zero.");
     }
     standard_form.row(leaving) /= pivot_value;
 

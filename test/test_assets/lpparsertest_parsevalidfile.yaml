@@ -4,4 +4,4 @@ data:
   c: [7, 8]
 problem:
   sense: maximize
-  domain: natural
+  domain: nonnegative

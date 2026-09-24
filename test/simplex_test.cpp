@@ -10,8 +10,9 @@ TEST(SimplexTest, Solution) {
     Eigen::VectorXd maximization_function(2);
     maximization_function << 3.0, 2.0;
 
-    NaturalLinearProgram lp(inequalities, inequalities_rhs, maximization_function,
-                            LinearProgram::Sense::Maximize, LinearProgram::Domain::Natural);
+    NonNegativeLinearProgram lp(inequalities, inequalities_rhs, maximization_function,
+                               LinearProgram::Sense::Maximize,
+                               LinearProgram::Domain::NonNegative);
     SimplexSolver solver;
     Eigen::VectorXd solution = solver.solve(lp);
 
@@ -26,8 +27,9 @@ TEST(SimplexTest, Solution2) {
     Eigen::VectorXd maximization_function(2);
     maximization_function << 3.0, 5.0;
 
-    NaturalLinearProgram lp(inequalities, inequalities_rhs, maximization_function,
-                            LinearProgram::Sense::Maximize, LinearProgram::Domain::Natural);
+    NonNegativeLinearProgram lp(inequalities, inequalities_rhs, maximization_function,
+                               LinearProgram::Sense::Maximize,
+                               LinearProgram::Domain::NonNegative);
     SimplexSolver solver;
     Eigen::VectorXd solution = solver.solve(lp);
 
@@ -42,10 +44,11 @@ TEST(SimplexTest, Infeasible) {
     Eigen::VectorXd maximization_function(2);
     maximization_function << 1.0, 1.0;
 
-    NaturalLinearProgram lp(inequalities, inequalities_rhs, maximization_function,
-                            LinearProgram::Sense::Maximize, LinearProgram::Domain::Natural);
+    NonNegativeLinearProgram lp(inequalities, inequalities_rhs, maximization_function,
+                               LinearProgram::Sense::Maximize,
+                               LinearProgram::Domain::NonNegative);
     SimplexSolver solver;
-    EXPECT_THROW(solver.solve(lp), std::runtime_error);
+    EXPECT_THROW(solver.solve(lp), InvalidModelError);
 }
 
 TEST(SimplexTest, Unbounded) {
@@ -55,13 +58,11 @@ TEST(SimplexTest, Unbounded) {
     Eigen::VectorXd maximization_function(2);
     maximization_function << 1.0, 1.0;
 
-    NaturalLinearProgram lp(inequalities, inequalities_rhs, maximization_function,
-                            LinearProgram::Sense::Maximize, LinearProgram::Domain::Natural);
+    NonNegativeLinearProgram lp(inequalities, inequalities_rhs, maximization_function,
+                               LinearProgram::Sense::Maximize,
+                               LinearProgram::Domain::NonNegative);
     SimplexSolver solver;
-    Eigen::VectorXd solution = solver.solve(lp);
-
-    EXPECT_TRUE(solution.array().isInf().all());
-    EXPECT_TRUE((solution.array() > 0).all());
+    EXPECT_THROW(solver.solve(lp), UnboundedProblemError);
 }
 
 TEST(SimplexTest, Minimize) {
@@ -71,8 +72,9 @@ TEST(SimplexTest, Minimize) {
     Eigen::VectorXd maximization_function(2);
     maximization_function << 3.0, 2.0;
 
-    NaturalLinearProgram lp(inequalities, inequalities_rhs, maximization_function,
-                            LinearProgram::Sense::Minimize, LinearProgram::Domain::Natural);
+    NonNegativeLinearProgram lp(inequalities, inequalities_rhs, maximization_function,
+                               LinearProgram::Sense::Minimize,
+                               LinearProgram::Domain::NonNegative);
     SimplexSolver solver;
     Eigen::VectorXd solution = solver.solve(lp);
 

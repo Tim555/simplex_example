@@ -2,7 +2,38 @@
 
 #include "lp/linear_program.hpp"
 #include <Eigen/Dense>
+#include <stdexcept>
 #include <vector>
+
+/// Base class for solver failures.
+class SolverError : public std::runtime_error {
+  public:
+    using std::runtime_error::runtime_error;
+};
+
+/// The input LP violates the assumptions required by this solver.
+class InvalidModelError : public SolverError {
+  public:
+    using SolverError::SolverError;
+};
+
+/// The LP has no feasible solution.
+class InfeasibleProblemError : public SolverError {
+  public:
+    using SolverError::SolverError;
+};
+
+/// The LP objective can be made arbitrarily good.
+class UnboundedProblemError : public SolverError {
+  public:
+    using SolverError::SolverError;
+};
+
+/// The simplex algorithm encountered a numerical or cycling failure.
+class NumericalFailureError : public SolverError {
+  public:
+    using SolverError::SolverError;
+};
 
 /// Abstract solver that produces a solution vector for a LinearProgram.
 class Solver {
@@ -14,6 +45,13 @@ class Solver {
 };
 
 /// Solves a LinearProgram using the tableau-based simplex method.
+///
+/// Deliberate limitations for this learning implementation:
+/// - The solver currently assumes all RHS values are non-negative.
+/// - The solver assumes standard form with slack variables.
+/// - The solver does not implement phase-1 feasibility recovery.
+/// These assumptions are intentional for this project, but they should be treated as explicit
+/// limitations of the current solver.
 class SimplexSolver : public Solver {
   public:
     /// Outcome of a single simplex pivot step.
